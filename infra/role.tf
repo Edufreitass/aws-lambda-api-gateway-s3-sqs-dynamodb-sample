@@ -1,5 +1,5 @@
-resource "aws_iam_role" "lambda_exec_role" {
-  name = "lambda_exec_role"
+resource "aws_iam_role" "batch_upload_lambda_exec_role" {
+  name = "batch_upload_lambda_exec_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
