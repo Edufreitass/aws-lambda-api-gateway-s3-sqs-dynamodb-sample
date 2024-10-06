@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 from datetime import datetime
@@ -22,20 +23,34 @@ saopaulo_tz = pytz.timezone('America/Sao_Paulo')
 @logger.inject_lambda_context
 @tracer.capture_lambda_handler
 def lambda_handler(event, context):
+    s3 = boto3.client('s3')
+    
     for record in event['Records']:
         # Mensagem da fila SQS
         message = json.loads(record['body'])
         
         # Processar a mensagem
         try:
-            user_data = json.loads(message['Message'], parse_float=Decimal)
+            # Recupera informações do S3
+            s3_bucket = message['Records'][0]['s3']['bucket']['name']
+            s3_key = message['Records'][0]['s3']['object']['key']
             
-            # Adicionar timestamp em horário local
-            user_data['timestamp'] = datetime.now(saopaulo_tz).isoformat()
+            # Faz download do arquivo CSV
+            csv_file = s3.get_object(Bucket=s3_bucket, Key=s3_key)
+            csv_content = csv_file['Body'].read().decode('utf-8').splitlines()
+            
+            # Leitura do CSV
+            csv_reader = csv.DictReader(csv_content)
 
-            # Inserir no DynamoDB
-            response = table.put_item(Item=user_data)
-            logger.info(f"Item inserido com sucesso: {response}")
+            # Processamento do CSV
+            for row in csv_reader:
+                row['timestamp'] = datetime.now(saopaulo_tz).isoformat()
+                # Converte valores numéricos para Decimal
+                item = {k: Decimal(v) if k in ['amount', 'price'] else v for k, v in row.items()}
+
+                # Inserir no DynamoDB
+                response = table.put_item(Item=item)
+                logger.info(f"Item inserido com sucesso: {response}")
         
         except Exception as e:
             logger.error(f"Erro ao processar a mensagem: {e}")

@@ -15,7 +15,8 @@ resource "aws_iam_role_policy" "batch_upload_lambda_exec_policy" {
           "dynamodb:PutItem",
           "sqs:ReceiveMessage",
           "sqs:DeleteMessage",
-          "sqs:GetQueueAttributes"
+          "sqs:GetQueueAttributes",
+          "s3:GetObject"
         ]
         Effect   = "Allow"
         Resource = "*"
